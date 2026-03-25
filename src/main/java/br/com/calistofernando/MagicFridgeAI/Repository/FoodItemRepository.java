@@ -1,4 +1,7 @@
 package br.com.calistofernando.MagicFridgeAI.Repository;
 
-public class FoodItemRepository {
+import br.com.calistofernando.MagicFridgeAI.model.FoodItemModel;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface FoodItemRepository extends JpaRepository<FoodItemModel, Long> {
 }
