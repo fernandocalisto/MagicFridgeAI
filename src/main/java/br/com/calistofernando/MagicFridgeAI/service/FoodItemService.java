@@ -1,6 +1,6 @@
 package br.com.calistofernando.MagicFridgeAI.service;
 
-import br.com.calistofernando.MagicFridgeAI.Repository.FoodItemRepository;
+import br.com.calistofernando.MagicFridgeAI.repository.FoodItemRepository;
 import br.com.calistofernando.MagicFridgeAI.model.FoodItemModel;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

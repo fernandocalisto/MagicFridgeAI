@@ -1,4 +1,4 @@
-package br.com.calistofernando.MagicFridgeAI.Repository;
+package br.com.calistofernando.MagicFridgeAI.repository;
 
 import br.com.calistofernando.MagicFridgeAI.model.FoodItemModel;
 import org.springframework.data.jpa.repository.JpaRepository;
