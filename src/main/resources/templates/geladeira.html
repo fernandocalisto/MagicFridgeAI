@@ -1,0 +1,287 @@
+<style>
+    :root { --bg-color: #f4f4f9; --primary: #ff6b6b; --text: #333; }
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; display: flex; height: 100vh; box-sizing: border-box; gap: 20px; }
+
+    /* Lado Esquerdo */
+    .painel-esquerdo { flex: 1; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow-y: auto; }
+    .form-add { display: flex; flex-wrap: wrap; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ddd; }
+    .form-add input, .form-add select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 120px; }
+    .btn-add { background-color: #4CAF50; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; mt: 10px;}
+
+    .ingrediente-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; background: #fff; border: 1px solid #eee; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--primary); }
+    .acoes button { background: none; border: none; cursor: pointer; margin-left: 10px; font-size: 16px; }
+
+    /* Lado Direito */
+    .painel-direito { flex: 1; display: flex; flex-direction: column; }
+    .btn-gerar { background-color: var(--primary); color: white; border: none; padding: 15px; font-size: 18px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-bottom: 20px; transition: 0.3s; }
+    .btn-gerar:hover { background-color: #ff5252; }
+
+    .folha-papel { flex: 1; background-color: #fdfbf7; padding: 30px; border-radius: 4px; box-shadow: 3px 5px 15px rgba(0,0,0,0.1); overflow-y: auto; background-image: repeating-linear-gradient(transparent, transparent 31px, #e0dcd3 31px, #e0dcd3 32px); line-height: 32px; }
+    .folha-papel h2, .folha-papel h3, .folha-papel p, .folha-papel li { margin: 0; position: relative; top: 4px; }
+    .folha-papel h2 { color: var(--primary); font-size: 24px; text-align: center; margin-bottom: 16px;}
+    .folha-papel h3 { margin-top: 16px; color: #555; font-size: 18px;}
+    .estrelas { color: gold; font-size: 20px; text-align: center;}
+    .loader { text-align: center; font-style: italic; color: #888; display: none; }
+
+        /* Estilos do Modal de Edição */
+    .modal {
+    display: none; /* Escondido por padrão */
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5); /* Fundo escurecido */
+    }
+    .modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    }
+    .close:hover {
+    color: black;
+    }
+</style>
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magic Fridge AI</title>
+</head>
+<body>
+
+<div class="painel-esquerdo">
+    <h2>Minha Geladeira</h2>
+
+    <form class="form-add" id="formIngrediente" onsubmit="adicionarIngrediente(event)">
+        <input type="text" id="nome" placeholder="Nome do item" required>
+        <select id="categoria" required>
+            <option value="PRODUCE">Hortifruti</option>
+            <option value="MEAT_AND_POULTRY">Carnes e Aves</option>
+            <option value="DAIRY">Laticínios</option>
+            <option value="GRAINS_AND_PASTA">Grãos e Massas</option>
+            <option value="OTHER">Outros</option>
+        </select>
+        <input type="number" id="quantidade" placeholder="Qtd" min="1" required>
+        <input type="date" id="validade" required>
+        <button type="submit" class="btn-add">+ Adicionar à Geladeira</button>
+    </form>
+
+    <div id="lista-ingredientes">
+        <div th:each="item : ${ingredientes}" class="ingrediente-item" th:id="'item-' + ${item.id}">
+            <div>
+                <strong th:text="${item.name}">Nome</strong>
+                <span style="font-size: 12px; color: #666;"
+                      th:text="'(' + ${item.quantity} + ' un. - Vence em ' + ${item.expirationDate} + ')'"></span>
+            </div>
+            <div class="acoes">
+                <button type="button"
+                        th:data-id="${item.id}"
+                        th:data-nome="${item.name}"
+                        th:data-categoria="${item.foodCategory}"
+                        th:data-qtd="${item.quantity}"
+                        th:data-validade="${item.expirationDate}"
+                        onclick="abrirModalEdicao(this)"
+                        title="Editar">✏️</button>
+
+                <button type="button"
+                        th:data-id="${item.id}"
+                        onclick="deletarIngrediente(this.getAttribute('data-id'))"
+                        title="Excluir">🗑️</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="painel-direito">
+    <button class="btn-gerar" onclick="gerarReceita()">✨ Criar Magia com o Chef IA</button>
+
+    <div class="folha-papel" id="container-receita">
+        <div class="loader" id="loader">O Chef está analisando sua geladeira... 🍳</div>
+        <div id="resultado-receita">
+            <h2 style="color: #ccc; margin-top: 50px; text-align: center;">Sua receita mágica aparecerá aqui</h2>
+        </div>
+    </div>
+</div>
+
+<div id="modalEdicao" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="fecharModal()">&times;</span>
+        <h2 style="margin-top: 0; color: var(--primary);">Editar Ingrediente</h2>
+
+        <form class="form-add" id="formEdicao" onsubmit="salvarEdicao(event)" style="flex-direction: column;">
+            <input type="hidden" id="editId">
+
+            <label>Nome:</label>
+            <input type="text" id="editNome" required>
+
+            <label>Categoria:</label>
+            <select id="editCategoria" required>
+                <option value="PRODUCE">Hortifruti</option>
+                <option value="MEAT_AND_POULTRY">Carnes e Aves</option>
+                <option value="DAIRY">Laticínios</option>
+                <option value="GRAINS_AND_PASTA">Grãos e Massas</option>
+                <option value="OILS_AND_FATS">Óleos e Gorduras</option>
+                <option value="SPICES_AND_HERBS">Temperos e Ervas</option>
+                <option value="OTHER">Outros</option>
+            </select>
+
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <div style="flex: 1;">
+                    <label>Quantidade:</label>
+                    <input type="number" id="editQuantidade" min="1" required style="width: 100%;">
+                </div>
+                <div style="flex: 1;">
+                    <label>Validade:</label>
+                    <input type="date" id="editValidade" required style="width: 100%;">
+                </div>
+            </div>
+
+            <button type="submit" class="btn-add" style="margin-top: 15px;">Salvar Alterações</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Função para Adicionar (POST)
+    async function adicionarIngrediente(event) {
+        event.preventDefault(); // Evita recarregar a página
+
+        const novoItem = {
+            name: document.getElementById('nome').value,
+            foodCategory: document.getElementById('categoria').value,
+            quantity: parseInt(document.getElementById('quantidade').value),
+            expirationDate: document.getElementById('validade').value
+        };
+
+        const response = await fetch('/food/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(novoItem)
+        });
+
+        if (response.ok) {
+            window.location.reload(); // Recarrega para o Thymeleaf trazer a lista atualizada
+        } else {
+            alert("Erro ao adicionar ingrediente.");
+        }
+    }
+
+    // Função para Deletar (DELETE)
+    async function deletarIngrediente(id) {
+        if(confirm("Tem certeza que deseja jogar este ingrediente fora?")) {
+            const response = await fetch(`/food/delete/${id}`, { method: 'DELETE' });
+            if (response.ok) {
+                document.getElementById(`item-${id}`).remove(); // Remove da tela sem recarregar
+            } else {
+                alert("Erro ao deletar ingrediente.");
+            }
+        }
+    }
+
+    // Função para Gerar Receita (GET no Gemini)
+    async function gerarReceita() {
+        const loader = document.getElementById('loader');
+        const resultado = document.getElementById('resultado-receita');
+
+        loader.style.display = 'block';
+        resultado.innerHTML = '';
+
+        try {
+            // Como você mudou para GET, não precisamos mandar body!
+            const response = await fetch('/generate');
+            if (!response.ok) throw new Error("Erro ao consultar o Chef IA");
+
+            const receita = await response.json();
+
+            let html = `<h2>${receita.nomeReceita}</h2>`;
+            let estrelas = '⭐'.repeat(receita.dificuldade) + '☆'.repeat(5 - receita.dificuldade);
+            html += `<div class="estrelas">Dificuldade: ${estrelas}</div>`;
+
+            html += `<h3>Ingredientes Usados:</h3><ul>`;
+            receita.ingredientesUsados.forEach(ing => html += `<li>${ing}</li>`);
+            html += `</ul>`;
+
+            html += `<h3>Modo de Preparo:</h3><ol>`;
+            receita.modoPreparo.forEach(passo => html += `<li>${passo}</li>`);
+            html += `</ol>`;
+
+            resultado.innerHTML = html;
+        } catch (error) {
+            resultado.innerHTML = `<h2 style="color: red;">Ops! A geladeira pifou.</h2><p>${error.message}</p>`;
+        } finally {
+            loader.style.display = 'none';
+        }
+    }
+
+        // Função para extrair os dados do botão e abrir o modal
+    function abrirModalEdicao(botaoClicado) {
+        // Pega os valores armazenados nos atributos data-*
+        document.getElementById('editId').value = botaoClicado.getAttribute('data-id');
+        document.getElementById('editNome').value = botaoClicado.getAttribute('data-nome');
+        document.getElementById('editCategoria').value = botaoClicado.getAttribute('data-categoria');
+        document.getElementById('editQuantidade').value = botaoClicado.getAttribute('data-qtd');
+        document.getElementById('editValidade').value = botaoClicado.getAttribute('data-validade');
+
+        document.getElementById('modalEdicao').style.display = 'block';
+    }
+
+    // Função para fechar o modal
+    function fecharModal() {
+        document.getElementById('modalEdicao').style.display = 'none';
+    }
+
+    // Fecha o modal se o usuário clicar fora da caixa branca
+    window.onclick = function(event) {
+        const modal = document.getElementById('modalEdicao');
+        if (event.target == modal) {
+            fecharModal();
+        }
+    }
+
+    // Função para enviar o PUT (Atualizar)
+    async function salvarEdicao(event) {
+        event.preventDefault();
+
+        const id = document.getElementById('editId').value;
+
+        // Monta o objeto com os novos dados
+        const itemAtualizado = {
+            name: document.getElementById('editNome').value,
+            foodCategory: document.getElementById('editCategoria').value,
+            quantity: parseInt(document.getElementById('editQuantidade').value),
+            expirationDate: document.getElementById('editValidade').value
+        };
+
+        try {
+            const response = await fetch(`/food/update/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(itemAtualizado)
+            });
+
+            if (response.ok) {
+                window.location.reload(); // Recarrega a página para exibir os dados atualizados
+            } else {
+                alert("Erro ao atualizar o ingrediente. Verifique os dados.");
+            }
+        } catch (error) {
+            alert("Erro de conexão ao tentar atualizar.");
+        }
+    }
+</script>
+</body>
+</html>
