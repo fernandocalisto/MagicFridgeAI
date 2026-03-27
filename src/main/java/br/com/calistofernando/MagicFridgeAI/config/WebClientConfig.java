@@ -9,11 +9,12 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 public class WebClientConfig {
 
-    @Value("${geminiApiUrl:https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=}")
+    @Value("${geminiApiUrl:https://generativelanguage.googleapis.com}")
     private String geminiAPIURL;
 
     @Bean
-    public WebClient webClient (WebClient.Builder builder) {
-        return builder.baseUrl(geminiAPIURL).build();
+    public WebClient webClient () {
+
+        return WebClient.builder().baseUrl(geminiAPIURL).build();
     }
 }
